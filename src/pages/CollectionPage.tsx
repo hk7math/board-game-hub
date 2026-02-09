@@ -6,8 +6,9 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { GameCard } from '@/components/game/GameCard';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { mockCollection } from '@/data/mockData';
+import { useUserCollection } from '@/hooks/useGameData';
 import { cn } from '@/lib/utils';
 
 const statusConfig = {
@@ -33,30 +34,11 @@ const itemVariants = {
 export default function CollectionPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('owned');
+  const { data: collection = [], isLoading } = useUserCollection();
 
-  const filteredCollection = mockCollection.filter(
+  const filteredCollection = collection.filter(
     (item) => item.status === activeTab
   );
-
-  const getBadge = (status: string) => {
-    const config = statusConfig[status as keyof typeof statusConfig];
-    return config?.label;
-  };
-
-  const getBadgeVariant = (status: string): 'primary' | 'accent' | 'muted' => {
-    switch (status) {
-      case 'owned':
-        return 'primary';
-      case 'wishlist':
-        return 'accent';
-      case 'for-trade':
-        return 'accent';
-      case 'for-sale':
-        return 'primary';
-      default:
-        return 'muted';
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -74,7 +56,7 @@ export default function CollectionPage() {
           <TabsList className="w-full h-auto p-1 bg-muted rounded-xl grid grid-cols-4">
             {Object.entries(statusConfig).map(([key, config]) => {
               const Icon = config.icon;
-              const count = mockCollection.filter((c) => c.status === key).length;
+              const count = collection.filter((c) => c.status === key).length;
               return (
                 <TabsTrigger
                   key={key}
@@ -93,7 +75,13 @@ export default function CollectionPage() {
           </TabsList>
 
           <TabsContent value={activeTab} className="mt-4">
-            {filteredCollection.length === 0 ? (
+            {isLoading ? (
+              <div className="grid grid-cols-2 gap-3">
+                {[1, 2, 3, 4].map(i => (
+                  <Skeleton key={i} className="aspect-square rounded-2xl" />
+                ))}
+              </div>
+            ) : filteredCollection.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
                   {(() => {

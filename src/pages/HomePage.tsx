@@ -7,7 +7,8 @@ import { MobileNav } from '@/components/layout/MobileNav';
 import { GameCard } from '@/components/game/GameCard';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { mockGames, mockCollection, mockRecords } from '@/data/mockData';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useUserCollection, useGameRecords } from '@/hooks/useGameData';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -25,9 +26,12 @@ const itemVariants = {
 export default function HomePage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const { data: collection = [], isLoading: collectionLoading } = useUserCollection();
+  const { data: records = [], isLoading: recordsLoading } = useGameRecords();
 
-  const recentGames = mockCollection.filter(c => c.status === 'owned').slice(0, 4);
-  const recentRecords = mockRecords.slice(0, 3);
+  const ownedGames = collection.filter(c => c.status === 'owned');
+  const recentGames = ownedGames.slice(0, 4);
+  const recentRecords = records.slice(0, 3);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -91,12 +95,12 @@ export default function HomePage() {
               </div>
               <div>
                 <p className="text-sm opacity-80">我的收藏</p>
-                <p className="text-2xl font-bold">{mockCollection.filter(c => c.status === 'owned').length} 款</p>
+                <p className="text-2xl font-bold">{ownedGames.length} 款</p>
               </div>
             </div>
             <div className="text-right">
               <p className="text-sm opacity-80">總遊玩次數</p>
-              <p className="text-2xl font-bold">{mockRecords.length} 次</p>
+              <p className="text-2xl font-bold">{records.length} 次</p>
             </div>
           </div>
         </motion.div>
@@ -118,45 +122,57 @@ export default function HomePage() {
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
-          <div className="space-y-2">
-            {recentRecords.map((record) => (
-              <motion.div
-                key={record.id}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-3 p-3 bg-card rounded-xl shadow-card"
-              >
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                  {record.game.thumbnail ? (
-                    <img
-                      src={record.game.thumbnail}
-                      alt={record.game.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Dices className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm truncate">{record.game.name}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {record.players.join('、')}
-                  </p>
-                </div>
-                <div className="text-right">
-                  {record.winner && (
-                    <span className="text-xs font-medium text-primary">
-                      🏆 {record.winner}
-                    </span>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(record.playedAt).toLocaleDateString('zh-TW')}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          {recordsLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map(i => (
+                <Skeleton key={i} className="h-16 rounded-xl" />
+              ))}
+            </div>
+          ) : recentRecords.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              還沒有遊玩記錄，開始你的第一場遊戲吧！
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {recentRecords.map((record) => (
+                <motion.div
+                  key={record.id}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center gap-3 p-3 bg-card rounded-xl shadow-card"
+                >
+                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                    {record.game.thumbnail ? (
+                      <img
+                        src={record.game.thumbnail}
+                        alt={record.game.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Dices className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm truncate">{record.game.name}</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {record.players.join('、')}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    {record.winner && (
+                      <span className="text-xs font-medium text-primary">
+                        🏆 {record.winner}
+                      </span>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(record.playedAt).toLocaleDateString('zh-TW')}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </motion.section>
 
         {/* My collection */}
@@ -176,16 +192,31 @@ export default function HomePage() {
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {recentGames.map((item) => (
-              <GameCard
-                key={item.id}
-                game={item.game}
-                plays={item.plays}
-                onClick={() => navigate(`/game/${item.gameId}`)}
-              />
-            ))}
-          </div>
+          {collectionLoading ? (
+            <div className="grid grid-cols-2 gap-3">
+              {[1, 2, 3, 4].map(i => (
+                <Skeleton key={i} className="aspect-square rounded-2xl" />
+              ))}
+            </div>
+          ) : recentGames.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground text-sm mb-3">還沒有收藏遊戲</p>
+              <Button variant="outline" onClick={() => navigate('/add')}>
+                新增第一款遊戲
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {recentGames.map((item) => (
+                <GameCard
+                  key={item.id}
+                  game={item.game}
+                  plays={item.plays}
+                  onClick={() => navigate(`/game/${item.gameId}`)}
+                />
+              ))}
+            </div>
+          )}
         </motion.section>
       </motion.main>
 
