@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { Button } from '@/components/ui/button';
-import { mockCollection, mockRecords } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 
 const menuItems = [
-  { icon: Package, label: '我的收藏', path: '/collection', count: mockCollection.filter(c => c.status === 'owned').length },
-  { icon: Heart, label: '願望清單', path: '/collection?tab=wishlist', count: mockCollection.filter(c => c.status === 'wishlist').length },
-  { icon: Repeat, label: '換物清單', path: '/collection?tab=for-trade', count: mockCollection.filter(c => c.status === 'for-trade').length },
-  { icon: DollarSign, label: '我的商品', path: '/my-listings', count: 0 },
+  { icon: Package, label: '我的收藏', path: '/collection' },
+  { icon: Heart, label: '願望清單', path: '/collection?tab=wishlist' },
+  { icon: Repeat, label: '換物清單', path: '/collection?tab=for-trade' },
+  { icon: DollarSign, label: '我的商品', path: '/my-listings' },
 ];
 
 const settingsItems = [
@@ -20,9 +20,15 @@ const settingsItems = [
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
-  const totalPlays = mockRecords.length;
-  const ownedGames = mockCollection.filter(c => c.status === 'owned').length;
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
+  const displayName = user?.user_metadata?.username || user?.email?.split('@')[0] || '桌遊愛好者';
+  const displayEmail = user?.email || '';
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -39,9 +45,9 @@ export default function ProfilePage() {
             <div className="w-16 h-16 rounded-full gradient-warm flex items-center justify-center">
               <User className="w-8 h-8 text-primary-foreground" />
             </div>
-            <div className="flex-1">
-              <h2 className="font-bold text-lg">桌遊愛好者</h2>
-              <p className="text-sm text-muted-foreground">boardgamer@example.com</p>
+            <div className="flex-1 min-w-0">
+              <h2 className="font-bold text-lg truncate">{displayName}</h2>
+              <p className="text-sm text-muted-foreground truncate">{displayEmail}</p>
             </div>
             <Button variant="outline" size="sm" className="rounded-full">
               編輯
@@ -51,11 +57,11 @@ export default function ProfilePage() {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-border">
             <div className="text-center">
-              <p className="text-2xl font-bold text-primary">{ownedGames}</p>
+              <p className="text-2xl font-bold text-primary">0</p>
               <p className="text-xs text-muted-foreground">收藏遊戲</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-accent">{totalPlays}</p>
+              <p className="text-2xl font-bold text-accent">0</p>
               <p className="text-xs text-muted-foreground">遊玩記錄</p>
             </div>
             <div className="text-center">
@@ -88,9 +94,6 @@ export default function ProfilePage() {
                   <Icon className="w-5 h-5 text-secondary-foreground" />
                 </div>
                 <span className="flex-1 text-left font-medium">{item.label}</span>
-                {item.count !== undefined && (
-                  <span className="text-sm text-muted-foreground">{item.count}</span>
-                )}
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </motion.button>
             );
@@ -134,6 +137,7 @@ export default function ProfilePage() {
         >
           <Button
             variant="outline"
+            onClick={handleLogout}
             className="w-full h-12 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
           >
             <LogOut className="w-5 h-5 mr-2" />
