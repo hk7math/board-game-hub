@@ -7,7 +7,8 @@ import { MobileNav } from '@/components/layout/MobileNav';
 import { ListingCard } from '@/components/game/ListingCard';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { mockListings } from '@/data/mockData';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useGameListings } from '@/hooks/useGameData';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -26,10 +27,11 @@ export default function MarketplacePage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const { data: listings = [], isLoading } = useGameListings();
 
-  const locations = [...new Set(mockListings.map((l) => l.location).filter(Boolean))];
+  const locations = [...new Set(listings.map((l) => l.location).filter(Boolean))];
 
-  const filteredListings = mockListings.filter((listing) => {
+  const filteredListings = listings.filter((listing) => {
     const matchesSearch = listing.game.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
@@ -63,28 +65,30 @@ export default function MarketplacePage() {
         </div>
 
         {/* Location filter */}
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-          <Button
-            variant={selectedLocation === null ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedLocation(null)}
-            className="rounded-full flex-shrink-0"
-          >
-            <MapPin className="w-4 h-4 mr-1" />
-            全部地區
-          </Button>
-          {locations.map((location) => (
+        {locations.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
             <Button
-              key={location}
-              variant={selectedLocation === location ? 'default' : 'outline'}
+              variant={selectedLocation === null ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setSelectedLocation(location || null)}
+              onClick={() => setSelectedLocation(null)}
               className="rounded-full flex-shrink-0"
             >
-              {location}
+              <MapPin className="w-4 h-4 mr-1" />
+              全部地區
             </Button>
-          ))}
-        </div>
+            {locations.map((location) => (
+              <Button
+                key={location}
+                variant={selectedLocation === location ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedLocation(location || null)}
+                className="rounded-full flex-shrink-0"
+              >
+                {location}
+              </Button>
+            ))}
+          </div>
+        )}
 
         {/* Stats bar */}
         <div className="flex items-center justify-between px-1">
@@ -97,28 +101,38 @@ export default function MarketplacePage() {
         </div>
 
         {/* Listings grid */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-2 gap-3"
-        >
-          {filteredListings.map((listing) => (
-            <motion.div key={listing.id} variants={itemVariants}>
-              <ListingCard
-                listing={listing}
-                onClick={() => navigate(`/listing/${listing.id}`)}
-              />
-            </motion.div>
-          ))}
-        </motion.div>
+        {isLoading ? (
+          <div className="grid grid-cols-2 gap-3">
+            {[1, 2, 3, 4].map(i => (
+              <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
+            ))}
+          </div>
+        ) : (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-2 gap-3"
+          >
+            {filteredListings.map((listing) => (
+              <motion.div key={listing.id} variants={itemVariants}>
+                <ListingCard
+                  listing={listing}
+                  onClick={() => navigate(`/listing/${listing.id}`)}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
 
-        {filteredListings.length === 0 && (
+        {!isLoading && filteredListings.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
               <Search className="w-8 h-8 text-muted-foreground" />
             </div>
-            <p className="text-muted-foreground">找不到符合條件的商品</p>
+            <p className="text-muted-foreground">
+              {listings.length === 0 ? '還沒有任何商品上架' : '找不到符合條件的商品'}
+            </p>
           </div>
         )}
       </div>

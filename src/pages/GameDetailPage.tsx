@@ -5,24 +5,41 @@ import {
   Package, Heart, Repeat, DollarSign, ArrowLeft,
   ExternalLink, BookOpen
 } from 'lucide-react';
-import { PageHeader } from '@/components/layout/PageHeader';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { Button } from '@/components/ui/button';
-import { mockGames, mockCollection, mockRecords } from '@/data/mockData';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useBoardGame, useUserCollection, useGameRecords } from '@/hooks/useGameData';
 import { cn } from '@/lib/utils';
 
 export default function GameDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const game = mockGames.find((g) => g.id === id);
-  const collectionItem = mockCollection.find((c) => c.gameId === id);
-  const gameRecords = mockRecords.filter((r) => r.gameId === id);
+  const { data: game, isLoading: gameLoading } = useBoardGame(id);
+  const { data: collection = [] } = useUserCollection();
+  const { data: records = [] } = useGameRecords();
+
+  const collectionItem = collection.find((c) => c.gameId === id);
+  const gameRecords = records.filter((r) => r.gameId === id);
+
+  if (gameLoading) {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <Skeleton className="h-64 w-full" />
+        <div className="px-4 -mt-8 relative z-10 space-y-6">
+          <Skeleton className="h-40 rounded-2xl" />
+          <Skeleton className="h-32 rounded-2xl" />
+        </div>
+        <MobileNav />
+      </div>
+    );
+  }
 
   if (!game) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p>遊戲不存在</p>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <p className="text-muted-foreground">遊戲不存在</p>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>返回</Button>
       </div>
     );
   }
@@ -55,7 +72,6 @@ export default function GameDetailPage() {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         
-        {/* Back button */}
         <Button
           variant="ghost"
           size="icon"
@@ -65,7 +81,6 @@ export default function GameDetailPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
 
-        {/* Status badge */}
         {currentStatus && (
           <div className={cn('absolute top-4 right-4 px-3 py-1.5 rounded-full font-medium text-sm flex items-center gap-1.5', currentStatus.color)}>
             <currentStatus.icon className="w-4 h-4" />
@@ -88,7 +103,6 @@ export default function GameDetailPage() {
             </p>
           )}
 
-          {/* Quick stats */}
           <div className="flex items-center gap-4 mt-4 text-sm">
             {game.minPlayers && (
               <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -105,12 +119,11 @@ export default function GameDetailPage() {
             {game.rating && (
               <div className="flex items-center gap-1.5">
                 <Star className="w-4 h-4 fill-gold text-gold" />
-                <span className="font-medium">{game.rating.toFixed(1)}</span>
+                <span className="font-medium">{Number(game.rating).toFixed(1)}</span>
               </div>
             )}
           </div>
 
-          {/* Categories */}
           {game.categories && game.categories.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
               {game.categories.map((cat) => (
