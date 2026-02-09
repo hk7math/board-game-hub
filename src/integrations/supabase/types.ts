@@ -14,7 +14,222 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      board_games: {
+        Row: {
+          bgg_id: number | null
+          categories: string[] | null
+          created_at: string
+          description: string | null
+          id: string
+          image: string | null
+          max_players: number | null
+          mechanics: string[] | null
+          min_age: number | null
+          min_players: number | null
+          name: string
+          playing_time: number | null
+          rating: number | null
+          thumbnail: string | null
+          weight: number | null
+          year_published: number | null
+        }
+        Insert: {
+          bgg_id?: number | null
+          categories?: string[] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image?: string | null
+          max_players?: number | null
+          mechanics?: string[] | null
+          min_age?: number | null
+          min_players?: number | null
+          name: string
+          playing_time?: number | null
+          rating?: number | null
+          thumbnail?: string | null
+          weight?: number | null
+          year_published?: number | null
+        }
+        Update: {
+          bgg_id?: number | null
+          categories?: string[] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image?: string | null
+          max_players?: number | null
+          mechanics?: string[] | null
+          min_age?: number | null
+          min_players?: number | null
+          name?: string
+          playing_time?: number | null
+          rating?: number | null
+          thumbnail?: string | null
+          weight?: number | null
+          year_published?: number | null
+        }
+        Relationships: []
+      }
+      game_listings: {
+        Row: {
+          condition: string
+          created_at: string
+          description: string | null
+          game_id: string
+          id: string
+          location: string | null
+          price: number
+          seller_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          condition: string
+          created_at?: string
+          description?: string | null
+          game_id: string
+          id?: string
+          location?: string | null
+          price: number
+          seller_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          condition?: string
+          created_at?: string
+          description?: string | null
+          game_id?: string
+          id?: string
+          location?: string | null
+          price?: number
+          seller_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_listings_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "board_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_records: {
+        Row: {
+          created_at: string
+          duration: number | null
+          game_id: string
+          id: string
+          notes: string | null
+          played_at: string
+          players: string[] | null
+          scores: Json | null
+          user_id: string
+          winner: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration?: number | null
+          game_id: string
+          id?: string
+          notes?: string | null
+          played_at?: string
+          players?: string[] | null
+          scores?: Json | null
+          user_id: string
+          winner?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration?: number | null
+          game_id?: string
+          id?: string
+          notes?: string | null
+          played_at?: string
+          players?: string[] | null
+          scores?: Json | null
+          user_id?: string
+          winner?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_records_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "board_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      user_collections: {
+        Row: {
+          added_at: string
+          game_id: string
+          id: string
+          notes: string | null
+          plays: number | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          game_id: string
+          id?: string
+          notes?: string | null
+          plays?: number | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          game_id?: string
+          id?: string
+          notes?: string | null
+          plays?: number | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_collections_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "board_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
