@@ -267,8 +267,13 @@ export default function AddGamePage() {
                     {game.thumbnail ? (
                       <img src={game.thumbnail} alt={game.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
                     ) : (
-                      <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
-                        <Search className="w-6 h-6 text-muted-foreground" />
+                      <div
+                        className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 text-xl font-bold text-primary-foreground"
+                        style={{
+                          background: `hsl(${(game.bggId * 37) % 360}, 45%, 55%)`,
+                        }}
+                      >
+                        {game.name.charAt(0).toUpperCase()}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
