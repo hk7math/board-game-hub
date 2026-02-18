@@ -135,6 +135,54 @@ Deno.serve(async (req) => {
 
     console.log(`Found ${games.length} games for query: ${query}`);
 
+    // Try to fetch thumbnails from BGG for the returned bggIds
+    const bggIds = games.map((g: any) => g.bggId).filter(Boolean);
+    if (bggIds.length > 0) {
+      try {
+        const idsStr = bggIds.join(',');
+        const bggRes = await fetch(
+          `https://boardgamegeek.com/xmlapi2/thing?id=${idsStr}&type=boardgame`,
+          {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; BGHub/1.0)',
+              'Accept': 'application/xml, text/xml, */*',
+            },
+          }
+        );
+        if (bggRes.ok) {
+          const xml = await bggRes.text();
+          // Extract thumbnail and image for each ID
+          const itemRegex = /<item\s+type="boardgame"\s+id="(\d+)">([\s\S]*?)<\/item>/g;
+          let match;
+          const imageMap: Record<number, { thumbnail?: string; image?: string }> = {};
+          while ((match = itemRegex.exec(xml)) !== null) {
+            const id = parseInt(match[1]);
+            const block = match[2];
+            const thumbMatch = block.match(/<thumbnail>([\s\S]*?)<\/thumbnail>/);
+            const imgMatch = block.match(/<image>([\s\S]*?)<\/image>/);
+            imageMap[id] = {
+              thumbnail: thumbMatch ? thumbMatch[1].trim() : undefined,
+              image: imgMatch ? imgMatch[1].trim() : undefined,
+            };
+          }
+          // Merge images into games
+          for (const game of games) {
+            const imgs = imageMap[game.bggId];
+            if (imgs) {
+              game.thumbnail = imgs.thumbnail;
+              game.image = imgs.image;
+            }
+          }
+          console.log(`Fetched images for ${Object.keys(imageMap).length} games from BGG`);
+        } else {
+          console.log('BGG thing API returned', bggRes.status, '- skipping images');
+        }
+      } catch (imgErr) {
+        console.error('Failed to fetch BGG images:', imgErr);
+        // Continue without images
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, data: games }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
