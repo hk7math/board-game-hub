@@ -3,202 +3,144 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-interface BggSearchResult {
-  bggId: number;
-  name: string;
-  yearPublished?: number;
-}
-
-interface BggGameDetail {
-  bggId: number;
-  name: string;
-  yearPublished?: number;
-  minPlayers?: number;
-  maxPlayers?: number;
-  playingTime?: number;
-  minAge?: number;
-  description?: string;
-  thumbnail?: string;
-  image?: string;
-  rating?: number;
-  weight?: number;
-  categories?: string[];
-  mechanics?: string[];
-}
-
-function extractText(xml: string, tag: string): string | undefined {
-  const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`);
-  const match = xml.match(regex);
-  return match ? match[1].trim() : undefined;
-}
-
-function extractAttr(xml: string, tag: string, attr: string): string | undefined {
-  const regex = new RegExp(`<${tag}[^>]*\\s${attr}="([^"]*)"`, 'i');
-  const match = xml.match(regex);
-  return match ? match[1] : undefined;
-}
-
-function decodeHtmlEntities(text: string): string {
-  return text
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#10;/g, '\n')
-    .replace(/&mdash;/g, '—')
-    .replace(/&ndash;/g, '–')
-    .replace(/&rsquo;/g, "'")
-    .replace(/&lsquo;/g, "'")
-    .replace(/&rdquo;/g, '"')
-    .replace(/&ldquo;/g, '"');
-}
-
-async function searchBgg(query: string): Promise<BggSearchResult[]> {
-  const url = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(query)}&type=boardgame`;
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; BGHub/1.0)',
-      'Accept': 'application/xml, text/xml, */*',
-    },
-  });
-  const xml = await res.text();
-
-  console.log('BGG search response status:', res.status);
-  console.log('BGG search XML (first 500 chars):', xml.substring(0, 500));
-
-  const results: BggSearchResult[] = [];
-  const itemRegex = /<item\s+type="boardgame"\s+id="(\d+)">([\s\S]*?)<\/item>/g;
-  let match;
-
-  while ((match = itemRegex.exec(xml)) !== null) {
-    const bggId = parseInt(match[1]);
-    const block = match[2];
-
-    const nameMatch = block.match(/<name\s+type="primary"\s+value="([^"]*)"/);
-    const yearMatch = block.match(/<yearpublished\s+value="([^"]*)"/);
-
-    if (nameMatch) {
-      results.push({
-        bggId,
-        name: decodeHtmlEntities(nameMatch[1]),
-        yearPublished: yearMatch ? parseInt(yearMatch[1]) : undefined,
-      });
-    }
-  }
-
-  return results.slice(0, 20);
-}
-
-async function getGameDetails(bggIds: number[]): Promise<BggGameDetail[]> {
-  if (bggIds.length === 0) return [];
-
-  const idsStr = bggIds.join(',');
-  const url = `https://boardgamegeek.com/xmlapi2/thing?id=${idsStr}&stats=1`;
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; BGHub/1.0)',
-      'Accept': 'application/xml, text/xml, */*',
-    },
-  });
-  const xml = await res.text();
-
-  const games: BggGameDetail[] = [];
-  const itemRegex = /<item\s+type="boardgame"\s+id="(\d+)">([\s\S]*?)<\/item>/g;
-  let match;
-
-  while ((match = itemRegex.exec(xml)) !== null) {
-    const bggId = parseInt(match[1]);
-    const block = match[2];
-
-    const nameMatch = block.match(/<name\s+type="primary"\s+value="([^"]*)"/);
-    if (!nameMatch) continue;
-
-    const thumbnail = extractText(block, 'thumbnail');
-    const image = extractText(block, 'image');
-    const description = extractText(block, 'description');
-    const minPlayersMatch = block.match(/<minplayers\s+value="(\d+)"/);
-    const maxPlayersMatch = block.match(/<maxplayers\s+value="(\d+)"/);
-    const playingTimeMatch = block.match(/<playingtime\s+value="(\d+)"/);
-    const minAgeMatch = block.match(/<minage\s+value="(\d+)"/);
-    const yearMatch = block.match(/<yearpublished\s+value="([^"]*)"/);
-
-    const ratingMatch = block.match(/<average\s+value="([^"]*)"/);
-    const weightMatch = block.match(/<averageweight\s+value="([^"]*)"/);
-
-    const categories: string[] = [];
-    const catRegex = /<link\s+type="boardgamecategory"[^>]*value="([^"]*)"/g;
-    let catMatch;
-    while ((catMatch = catRegex.exec(block)) !== null) {
-      categories.push(decodeHtmlEntities(catMatch[1]));
-    }
-
-    const mechanics: string[] = [];
-    const mechRegex = /<link\s+type="boardgamemechanic"[^>]*value="([^"]*)"/g;
-    let mechMatch;
-    while ((mechMatch = mechRegex.exec(block)) !== null) {
-      mechanics.push(decodeHtmlEntities(mechMatch[1]));
-    }
-
-    games.push({
-      bggId,
-      name: decodeHtmlEntities(nameMatch[1]),
-      yearPublished: yearMatch ? parseInt(yearMatch[1]) : undefined,
-      minPlayers: minPlayersMatch ? parseInt(minPlayersMatch[1]) : undefined,
-      maxPlayers: maxPlayersMatch ? parseInt(maxPlayersMatch[1]) : undefined,
-      playingTime: playingTimeMatch ? parseInt(playingTimeMatch[1]) : undefined,
-      minAge: minAgeMatch ? parseInt(minAgeMatch[1]) : undefined,
-      description: description ? decodeHtmlEntities(description).substring(0, 2000) : undefined,
-      thumbnail,
-      image,
-      rating: ratingMatch && ratingMatch[1] !== '0' ? parseFloat(ratingMatch[1]) : undefined,
-      weight: weightMatch && weightMatch[1] !== '0' ? parseFloat(weightMatch[1]) : undefined,
-      categories: categories.length > 0 ? categories : undefined,
-      mechanics: mechanics.length > 0 ? mechanics : undefined,
-    });
-  }
-
-  return games;
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { query, bggIds } = await req.json();
+    const { query } = await req.json();
 
-    // Mode 1: Search by query
-    if (query) {
-      console.log('Searching BGG for:', query);
-      const results = await searchBgg(query);
-      
-      // Fetch details for top results
-      const topIds = results.slice(0, 10).map(r => r.bggId);
-      const details = await getGameDetails(topIds);
-
+    if (!query) {
       return new Response(
-        JSON.stringify({ success: true, data: details }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: 'Provide a search query' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Mode 2: Get details by BGG IDs
-    if (bggIds && Array.isArray(bggIds)) {
-      console.log('Fetching BGG details for IDs:', bggIds);
-      const details = await getGameDetails(bggIds);
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ success: true, data: details }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: 'LOVABLE_API_KEY not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Searching board games via AI for:', query);
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a board game database expert. When asked to search for board games, use the search_board_games tool to return accurate results. Include real BoardGameGeek IDs (bggId) when you know them. Return up to 10 results sorted by relevance. For each game, provide as much accurate data as possible including player counts, playing time, year published, BGG rating, weight/complexity, categories and mechanics. Use English names for game titles.`,
+          },
+          {
+            role: 'user',
+            content: `Search for board games matching: "${query}"`,
+          },
+        ],
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'search_board_games',
+              description: 'Return a list of board games matching the search query',
+              parameters: {
+                type: 'object',
+                properties: {
+                  games: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        bggId: { type: 'number', description: 'BoardGameGeek ID' },
+                        name: { type: 'string', description: 'Game name in English' },
+                        yearPublished: { type: 'number', description: 'Year published' },
+                        minPlayers: { type: 'number', description: 'Minimum players' },
+                        maxPlayers: { type: 'number', description: 'Maximum players' },
+                        playingTime: { type: 'number', description: 'Average playing time in minutes' },
+                        minAge: { type: 'number', description: 'Minimum recommended age' },
+                        description: { type: 'string', description: 'Brief game description (1-2 sentences)' },
+                        rating: { type: 'number', description: 'BGG average rating (1-10)' },
+                        weight: { type: 'number', description: 'Complexity weight (1-5)' },
+                        categories: {
+                          type: 'array',
+                          items: { type: 'string' },
+                          description: 'Game categories',
+                        },
+                        mechanics: {
+                          type: 'array',
+                          items: { type: 'string' },
+                          description: 'Game mechanics',
+                        },
+                      },
+                      required: ['bggId', 'name'],
+                      additionalProperties: false,
+                    },
+                  },
+                },
+                required: ['games'],
+                additionalProperties: false,
+              },
+            },
+          },
+        ],
+        tool_choice: { type: 'function', function: { name: 'search_board_games' } },
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ success: false, error: '搜尋請求過於頻繁，請稍後再試' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'AI 額度已用完，請至設定頁面加值' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const errText = await response.text();
+      console.error('AI gateway error:', response.status, errText);
+      return new Response(
+        JSON.stringify({ success: false, error: 'AI 搜尋服務暫時無法使用' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const aiData = await response.json();
+    console.log('AI response received');
+
+    // Extract tool call result
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall || toolCall.function.name !== 'search_board_games') {
+      console.error('Unexpected AI response format:', JSON.stringify(aiData));
+      return new Response(
+        JSON.stringify({ success: false, error: '搜尋結果格式異常' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const parsed = JSON.parse(toolCall.function.arguments);
+    const games = parsed.games || [];
+
+    console.log(`Found ${games.length} games for query: ${query}`);
 
     return new Response(
-      JSON.stringify({ success: false, error: 'Provide query or bggIds' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: true, data: games }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('BGG search error:', error);
+    console.error('Search error:', error);
     return new Response(
       JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
