@@ -295,10 +295,34 @@ export default function AddGamePage() {
               ))}
             </motion.div>
 
-            {!isSearching && searchResults.length === 0 && searchQuery && (
-              <p className="text-center text-muted-foreground text-sm py-8">
-                輸入關鍵字搜尋 BGG 資料庫
-              </p>
+            {!isSearching && searchResults.length === 0 && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground font-medium">🔥 熱門桌遊推薦</p>
+                {[
+                  { name: 'Catan', desc: '經典資源交易與拓荒遊戲' },
+                  { name: 'Ticket to Ride', desc: '收集車票、建造鐵路路線' },
+                  { name: 'Pandemic', desc: '合作拯救世界的防疫策略遊戲' },
+                  { name: 'Azul', desc: '美麗的瓷磚拼貼策略遊戲' },
+                  { name: 'Splendor', desc: '收集寶石、發展商業帝國' },
+                  { name: 'Codenames', desc: '雙人對決的文字聯想派對遊戲' },
+                  { name: '7 Wonders', desc: '建造古代文明奇蹟的卡牌遊戲' },
+                  { name: 'Wingspan', desc: '收集鳥類、建立棲息地的引擎構築遊戲' },
+                ].map((suggestion) => (
+                  <button
+                    key={suggestion.name}
+                    onClick={() => { setSearchQuery(suggestion.name); }}
+                    className="w-full flex items-center gap-3 p-3 bg-card rounded-xl shadow-card text-left hover:bg-accent/10 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Search className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate">{suggestion.name}</p>
+                      <p className="text-xs text-muted-foreground">{suggestion.desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
             )}
           </motion.div>
         )}
