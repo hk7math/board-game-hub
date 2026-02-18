@@ -20,7 +20,13 @@ export function PageHeader({ title, showBack = false, rightAction }: PageHeaderP
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  navigate('/');
+                }
+              }}
               className="h-9 w-9"
             >
               <ChevronLeft className="w-5 h-5" />
