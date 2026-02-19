@@ -10,6 +10,7 @@ import { MobileNav } from '@/components/layout/MobileNav';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ManageCollectionSheet } from '@/components/game/ManageCollectionSheet';
+import { RecordPlaySheet } from '@/components/game/RecordPlaySheet';
 import { useBoardGame, useUserCollection, useGameRecords } from '@/hooks/useGameData';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +24,7 @@ export default function GameDetailPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showManage, setShowManage] = useState(false);
+  const [showRecordPlay, setShowRecordPlay] = useState(false);
   const [addingToCollection, setAddingToCollection] = useState(false);
 
   const { data: game, isLoading: gameLoading } = useBoardGame(id);
@@ -158,7 +160,7 @@ export default function GameDetailPage() {
           <Button
             variant="outline"
             className="flex-1 h-12 rounded-xl"
-            onClick={() => {}}
+            onClick={() => setShowRecordPlay(true)}
           >
             <Plus className="w-5 h-5 mr-2" />
             記錄遊玩
@@ -276,6 +278,15 @@ export default function GameDetailPage() {
           currentStatus={collectionItem.status}
           gameName={game.name}
           onRemoved={() => navigate(-1)}
+        />
+      )}
+
+      {id && (
+        <RecordPlaySheet
+          open={showRecordPlay}
+          onOpenChange={setShowRecordPlay}
+          gameId={id}
+          gameName={game.name}
         />
       )}
 
