@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -8,12 +9,21 @@ import {
 import { MobileNav } from '@/components/layout/MobileNav';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ManageCollectionSheet } from '@/components/game/ManageCollectionSheet';
 import { useBoardGame, useUserCollection, useGameRecords } from '@/hooks/useGameData';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 export default function GameDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [showManage, setShowManage] = useState(false);
+  const [addingToCollection, setAddingToCollection] = useState(false);
 
   const { data: game, isLoading: gameLoading } = useBoardGame(id);
   const { data: collection = [] } = useUserCollection();
@@ -155,7 +165,27 @@ export default function GameDetailPage() {
           </Button>
           <Button
             className="flex-1 h-12 rounded-xl gradient-warm"
-            onClick={() => {}}
+            disabled={addingToCollection}
+            onClick={async () => {
+              if (collectionItem) {
+                setShowManage(true);
+              } else if (user && id) {
+                setAddingToCollection(true);
+                try {
+                  const { error } = await supabase
+                    .from('user_collections')
+                    .insert({ user_id: user.id, game_id: id, status: 'owned' });
+                  if (error) throw error;
+                  await queryClient.invalidateQueries({ queryKey: ['user-collection', user.id] });
+                  toast.success(`已將「${game.name}」加入收藏！`);
+                } catch (err) {
+                  console.error(err);
+                  toast.error('加入收藏失敗');
+                } finally {
+                  setAddingToCollection(false);
+                }
+              }
+            }}
           >
             {collectionItem ? '管理收藏' : '加入收藏'}
           </Button>
@@ -237,6 +267,17 @@ export default function GameDetailPage() {
           </motion.a>
         )}
       </div>
+
+      {collectionItem && (
+        <ManageCollectionSheet
+          open={showManage}
+          onOpenChange={setShowManage}
+          collectionId={collectionItem.id}
+          currentStatus={collectionItem.status}
+          gameName={game.name}
+          onRemoved={() => navigate(-1)}
+        />
+      )}
 
       <MobileNav />
     </div>
