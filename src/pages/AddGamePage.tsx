@@ -60,6 +60,7 @@ export default function AddGamePage() {
   const [searchResults, setSearchResults] = useState<BggGame[]>([]);
   const [scannedCode, setScannedCode] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<number | null>(null);
+  const [addedBggIds, setAddedBggIds] = useState<Set<number>>(new Set());
 
   const handleModeSelect = (selectedMode: AddMode) => {
     setMode(selectedMode);
@@ -87,6 +88,17 @@ export default function AddGamePage() {
         setSearchResults(data.data);
         if (data.data.length === 0) {
           toast.info('找不到相關桌遊，請嘗試其他關鍵字');
+        } else {
+          // Check which games are already in user's collection
+          const bggIds = data.data.map((g: BggGame) => g.bggId).filter(Boolean);
+          const { data: existing } = await supabase
+            .from('board_games')
+            .select('bgg_id, user_collections!inner(user_id)')
+            .in('bgg_id', bggIds)
+            .eq('user_collections.user_id', user?.id ?? '');
+          if (existing) {
+            setAddedBggIds(new Set(existing.map((g: any) => g.bgg_id)));
+          }
         }
       } else {
         toast.error(data?.error || '搜尋失敗');
@@ -171,6 +183,7 @@ export default function AddGamePage() {
       if (colErr) throw colErr;
 
       toast.success(`已將「${game.name}」加入收藏！`);
+      setAddedBggIds(prev => new Set(prev).add(game.bggId));
     } catch (err) {
       console.error('Add game error:', err);
       toast.error('新增遊戲時發生錯誤');
@@ -287,11 +300,12 @@ export default function AddGamePage() {
                     </div>
                     <Button
                       size="sm"
+                      variant={addedBggIds.has(game.bggId) ? 'secondary' : 'default'}
                       onClick={() => handleAddGame(game)}
-                      disabled={addingId === game.bggId}
+                      disabled={addingId === game.bggId || addedBggIds.has(game.bggId)}
                       className="self-center flex-shrink-0"
                     >
-                      {addingId === game.bggId ? <Loader2 className="w-4 h-4 animate-spin" /> : '加入'}
+                      {addingId === game.bggId ? <Loader2 className="w-4 h-4 animate-spin" /> : addedBggIds.has(game.bggId) ? '已收藏' : '加入'}
                     </Button>
                   </div>
                 </motion.div>
