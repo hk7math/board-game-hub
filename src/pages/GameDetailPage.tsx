@@ -138,6 +138,29 @@ export default function GameDetailPage() {
           )}
         </motion.div>
 
+        {/* Action buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="flex gap-3"
+        >
+          <Button
+            variant="outline"
+            className="flex-1 h-12 rounded-xl"
+            onClick={() => {}}
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            記錄遊玩
+          </Button>
+          <Button
+            className="flex-1 h-12 rounded-xl gradient-warm"
+            onClick={() => {}}
+          >
+            {collectionItem ? '管理收藏' : '加入收藏'}
+          </Button>
+        </motion.div>
+
         {/* Description */}
         {game.description && (
           <motion.div
@@ -213,26 +236,6 @@ export default function GameDetailPage() {
             <span className="font-medium">在 BoardGameGeek 查看</span>
           </motion.a>
         )}
-      </div>
-
-      {/* Bottom action bar */}
-      <div className="fixed bottom-16 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t border-border">
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="flex-1 h-12 rounded-xl"
-            onClick={() => {}}
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            記錄遊玩
-          </Button>
-          <Button
-            className="flex-1 h-12 rounded-xl gradient-warm"
-            onClick={() => {}}
-          >
-            {collectionItem ? '管理收藏' : '加入收藏'}
-          </Button>
-        </div>
       </div>
 
       <MobileNav />
