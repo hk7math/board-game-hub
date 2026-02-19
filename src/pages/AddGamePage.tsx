@@ -156,7 +156,6 @@ export default function AddGamePage() {
 
       if (existingCollection) {
         toast.info('這個遊戲已在你的收藏中');
-        navigate(`/game/${gameId}`);
         return;
       }
 
@@ -172,7 +171,6 @@ export default function AddGamePage() {
       if (colErr) throw colErr;
 
       toast.success(`已將「${game.name}」加入收藏！`);
-      navigate(`/game/${gameId}?added=true`);
     } catch (err) {
       console.error('Add game error:', err);
       toast.error('新增遊戲時發生錯誤');
