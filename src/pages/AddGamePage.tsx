@@ -5,6 +5,7 @@ import { ScanBarcode, Camera, Search, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
+import { SearchLoader } from '@/components/game/SearchLoader';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -270,49 +271,54 @@ export default function AddGamePage() {
               </Button>
             </div>
 
-            {/* Search results */}
-            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-3">
-              {searchResults.map((game) => (
-                <motion.div key={game.bggId} variants={itemVariants}>
-                  <div className="flex gap-3 p-3 bg-card rounded-2xl shadow-card">
-                    {game.thumbnail ? (
-                      <img src={game.thumbnail} alt={game.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
-                    ) : (
-                      <div
-                        className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 text-xl font-bold text-primary-foreground"
-                        style={{
-                          background: `hsl(${(game.bggId * 37) % 360}, 45%, 55%)`,
-                        }}
-                      >
-                        {game.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-sm truncate">{game.name}</h4>
-                      <p className="text-xs text-muted-foreground">
-                        {game.yearPublished && `${game.yearPublished} 年`}
-                        {game.minPlayers && game.maxPlayers && ` · ${game.minPlayers}-${game.maxPlayers} 人`}
-                        {game.playingTime && ` · ${game.playingTime} 分鐘`}
-                      </p>
-                      {game.rating && (
-                        <p className="text-xs text-muted-foreground">⭐ {game.rating.toFixed(1)}</p>
-                      )}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant={addedBggIds.has(game.bggId) ? 'secondary' : 'default'}
-                      onClick={() => handleAddGame(game)}
-                      disabled={addingId === game.bggId || addedBggIds.has(game.bggId)}
-                      className="self-center flex-shrink-0"
-                    >
-                      {addingId === game.bggId ? <Loader2 className="w-4 h-4 animate-spin" /> : addedBggIds.has(game.bggId) ? '已收藏' : '加入'}
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
+            {/* Loading state with random top games */}
+            {isSearching && <SearchLoader />}
 
-            {!isSearching && searchResults.length === 0 && (
+            {/* Search results */}
+            {!isSearching && searchResults.length > 0 && (
+              <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-3">
+                {searchResults.map((game) => (
+                  <motion.div key={game.bggId} variants={itemVariants}>
+                    <div className="flex gap-3 p-3 bg-card rounded-2xl shadow-card">
+                      {game.thumbnail ? (
+                        <img src={game.thumbnail} alt={game.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+                      ) : (
+                        <div
+                          className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 text-xl font-bold text-primary-foreground"
+                          style={{
+                            background: `hsl(${(game.bggId * 37) % 360}, 45%, 55%)`,
+                          }}
+                        >
+                          {game.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-sm truncate">{game.name}</h4>
+                        <p className="text-xs text-muted-foreground">
+                          {game.yearPublished && `${game.yearPublished} 年`}
+                          {game.minPlayers && game.maxPlayers && ` · ${game.minPlayers}-${game.maxPlayers} 人`}
+                          {game.playingTime && ` · ${game.playingTime} 分鐘`}
+                        </p>
+                        {game.rating && (
+                          <p className="text-xs text-muted-foreground">⭐ {game.rating.toFixed(1)}</p>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={addedBggIds.has(game.bggId) ? 'secondary' : 'default'}
+                        onClick={() => handleAddGame(game)}
+                        disabled={addingId === game.bggId || addedBggIds.has(game.bggId)}
+                        className="self-center flex-shrink-0"
+                      >
+                        {addingId === game.bggId ? <Loader2 className="w-4 h-4 animate-spin" /> : addedBggIds.has(game.bggId) ? '已收藏' : '加入'}
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+
+            {!isSearching && searchResults.length === 0 && !scannedCode && (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground font-medium">🔥 熱門桌遊推薦</p>
                 {[
