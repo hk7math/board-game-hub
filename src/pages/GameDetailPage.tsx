@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   Users, Clock, Star, Calendar, Plus, Dices, 
   Package, Heart, Repeat, DollarSign, ArrowLeft,
-  ExternalLink, BookOpen
+  ExternalLink, BookOpen, Trophy, BarChart3, Timer
 } from 'lucide-react';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { Button } from '@/components/ui/button';
@@ -192,6 +192,78 @@ export default function GameDetailPage() {
             {collectionItem ? '管理收藏' : '加入收藏'}
           </Button>
         </motion.div>
+
+        {/* Play Statistics */}
+        {gameRecords.length > 0 && (() => {
+          const totalPlays = gameRecords.length;
+          const totalDuration = gameRecords.reduce((sum, r) => sum + (r.duration || 0), 0);
+          const avgDuration = totalDuration > 0 ? Math.round(totalDuration / gameRecords.filter(r => r.duration).length) : null;
+          
+          // Count wins per player
+          const winCounts: Record<string, number> = {};
+          gameRecords.forEach(r => {
+            if (r.winner) {
+              winCounts[r.winner] = (winCounts[r.winner] || 0) + 1;
+            }
+          });
+          const topWinner = Object.entries(winCounts).sort((a, b) => b[1] - a[1])[0];
+
+          // Count all unique players
+          const allPlayers = new Set<string>();
+          gameRecords.forEach(r => r.players?.forEach(p => allPlayers.add(p)));
+
+          // Most recent play
+          const lastPlay = gameRecords.sort((a, b) => 
+            new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
+          )[0];
+
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08 }}
+              className="bg-card rounded-2xl shadow-card p-4"
+            >
+              <h2 className="font-bold mb-3 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-primary" />
+                遊玩統計
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-primary">{totalPlays}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">總遊玩次數</p>
+                </div>
+                <div className="bg-muted rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-accent">{allPlayers.size}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">不同玩家數</p>
+                </div>
+                {topWinner && (
+                  <div className="bg-muted rounded-xl p-3 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Trophy className="w-4 h-4 text-gold" />
+                      <p className="text-sm font-bold truncate">{topWinner[0]}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">最常獲勝 ({topWinner[1]}次)</p>
+                  </div>
+                )}
+                {avgDuration && (
+                  <div className="bg-muted rounded-xl p-3 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Timer className="w-4 h-4 text-muted-foreground" />
+                      <p className="text-sm font-bold">{avgDuration} 分鐘</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">平均遊玩時長</p>
+                  </div>
+                )}
+              </div>
+              {lastPlay && (
+                <p className="text-xs text-muted-foreground mt-3 text-center">
+                  上次遊玩：{new Date(lastPlay.playedAt).toLocaleDateString('zh-TW')}
+                </p>
+              )}
+            </motion.div>
+          );
+        })()}
 
         {/* Description */}
         {game.description && (
